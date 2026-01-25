@@ -20,6 +20,7 @@ type AlbumID3 struct {
 	ID                  string    `xml:"id,attr"`        // Manually added
 	Song                []*Child  `xml:"song,omitempty"` // Merged from AlbumWithSongsID3
 	Name                string    `xml:"name,attr"`
+	SortName            string    `xml:"sortName,attr,omitempty"` // OpenSubsonic extension
 	Artist              string    `xml:"artist,attr,omitempty"`
 	ArtistID            string    `xml:"artistId,attr,omitempty"`
 	Artists             []IDName  `xml:"artists,omitempty"` // OpenSubsonic extension
