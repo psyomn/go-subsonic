@@ -37,7 +37,7 @@ type StructuredLyrics struct {
 type LyricLine struct {
 	Start int    `xml:"start,attr"  json:"start"`
 	Text  string `xml:",chardata"   json:"value,omitempty"`
-	// Navidrome 0.51.0 - 0.52.5 incorrecty returns the lyric line text here
+	// Navidrome 0.51.0 - 0.52.5 incorrectly returns the lyric line text here
 	// This will be removed in the future
 	Value string `xml:"value" json:"-"`
 }
