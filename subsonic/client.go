@@ -11,6 +11,7 @@ package subsonic
 
 import (
 	"crypto/md5"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -39,6 +40,7 @@ type Client struct {
 	ClientName          string
 	UserAgent           string
 	PasswordAuth        bool
+	UseJSON             bool
 	RequestedAPIVersion string
 
 	openSubsonicExtensions []*OpenSubsonicExtension
@@ -87,7 +89,7 @@ func (s *Client) Authenticate(password string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	subsonicResp, err := unmarshalResponse(resp.Body)
+	subsonicResp, err := s.unmarshalResponse(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -150,7 +152,11 @@ func (s *Client) setupRequest(method string, endpoint string, params url.Values)
 }
 
 func (s *Client) addDefaultQueryParams(params url.Values) {
-	params.Add("f", "xml")
+	if s.UseJSON {
+		params.Add("f", "json")
+	} else {
+		params.Add("f", "xml")
+	}
 	apiVersion := defaultAPIVersion
 	if s.RequestedAPIVersion != "" {
 		apiVersion = s.RequestedAPIVersion
@@ -173,7 +179,7 @@ func (s *Client) getValues(endpoint string, params url.Values) (*Response, error
 		return nil, err
 	}
 	defer response.Body.Close()
-	parsed, err := unmarshalResponse(response.Body)
+	parsed, err := s.unmarshalResponse(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +216,7 @@ func (s *Client) postValues(endpoint string, params url.Values) (*Response, erro
 	}
 
 	defer resp.Body.Close()
-	parsed, err := unmarshalResponse(resp.Body)
+	parsed, err := s.unmarshalResponse(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -229,6 +235,25 @@ func (s *Client) buildRequestURL(endpoint string) (*url.URL, error) {
 	return baseUrl, nil
 }
 
+// unmarshalResponse parses a Subsonic API response body into a Response struct.
+// It dispatches to XML or JSON parsing based on the client's UseJSON setting.
+func (s *Client) unmarshalResponse(resp io.Reader) (*Response, error) {
+	responseBody, err := io.ReadAll(resp)
+	if err != nil {
+		return nil, err
+	}
+	if s.UseJSON {
+		return unmarshalJSONResponse(responseBody)
+	}
+	parsed := &Response{}
+	if err = xml.Unmarshal(responseBody, parsed); err != nil {
+		return nil, err
+	}
+	return parsed, nil
+}
+
+// unmarshalResponse parses an XML Subsonic API response. It is kept as a
+// package-level function for use in tests that do not have a Client instance.
 func unmarshalResponse(resp io.Reader) (*Response, error) {
 	responseBody, err := io.ReadAll(resp)
 	if err != nil {
@@ -239,6 +264,16 @@ func unmarshalResponse(resp io.Reader) (*Response, error) {
 		return nil, err
 	}
 	return parsed, nil
+}
+
+func unmarshalJSONResponse(data []byte) (*Response, error) {
+	var wrapper struct {
+		SubsonicResponse Response `json:"subsonic-response"`
+	}
+	if err := json.Unmarshal(data, &wrapper); err != nil {
+		return nil, err
+	}
+	return &wrapper.SubsonicResponse, nil
 }
 
 // Ping is used to test connectivity with the server. It returns true if the server is up.
