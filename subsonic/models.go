@@ -538,6 +538,7 @@ type InternetRadioStation struct {
 	Name        string `xml:"name,attr"                  json:"name"`
 	StreamUrl   string `xml:"streamUrl,attr"             json:"streamUrl"`
 	HomePageUrl string `xml:"homePageUrl,attr,omitempty" json:"homePageUrl,omitempty"`
+	CoverArt    string `xml:"coverArt,attr,omitempty"    json:"coverArt,omitempty"`
 }
 
 type internetRadioStations struct {
