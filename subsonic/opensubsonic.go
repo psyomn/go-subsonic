@@ -1,14 +1,53 @@
 package subsonic
 
-import "net/url"
+import (
+	"fmt"
+	"net/url"
+)
 
 // OpenSubsonic extension names
 const (
-	SongLyricsExtension = "songLyrics"
-	TranscodeOffset     = "transcodeOffset"
-	IndexBasedQueue     = "indexBasedQueue"
-	HTTPFormPost        = "formPost"
+	SongLyricsExtension  = "songLyrics"
+	TranscodeOffset      = "transcodeOffset"
+	IndexBasedQueue      = "indexBasedQueue"
+	HTTPFormPost         = "formPost"
+	PlaybackReport       = "playbackReport"
 )
+
+// PlaybackState represents the playback state for a ReportPlayback call.
+type PlaybackState string
+
+const (
+	PlaybackStateStarting PlaybackState = "starting"
+	PlaybackStatePlaying  PlaybackState = "playing"
+	PlaybackStatePaused   PlaybackState = "paused"
+	PlaybackStateStopped  PlaybackState = "stopped"
+)
+
+// PlaybackMediaType represents the type of media being reported.
+type PlaybackMediaType string
+
+const (
+	PlaybackMediaTypeSong    PlaybackMediaType = "song"
+	PlaybackMediaTypePodcast PlaybackMediaType = "podcast"
+)
+
+// ReportPlaybackParameters holds the parameters for a ReportPlayback call.
+type ReportPlaybackParameters struct {
+	// MediaID is the ID of the media being reported. Required.
+	MediaID string
+	// MediaType is either "song" or "podcast". Required.
+	MediaType PlaybackMediaType
+	// PositionMs is the playback position in milliseconds. Required.
+	PositionMs int64
+	// State is the current playback state. Required.
+	State PlaybackState
+	// PlaybackRate is the playback speed multiplier. Optional, defaults to 1.0.
+	PlaybackRate *float64
+	// IgnoreScrobble if true, the server should only update now-playing state
+	// and not trigger scrobble/playcount side effects. Optional, defaults to false.
+	IgnoreScrobble *bool
+}
 
 // Get the list of supported OpenSubsonic extensions for this server.
 func (c *Client) GetOpenSubsonicExtensions() ([]*OpenSubsonicExtension, error) {
@@ -70,5 +109,29 @@ func (c *Client) SavePlayQueueByIndex(songIDs []string, params map[string]string
 		values.Add(k, v)
 	}
 	_, err := c.getValues("savePlayQueueByIndex", values)
+	return err
+}
+
+// ReportPlayback reports the playback timeline state for a media item.
+// Clients should call this at least on each state change.
+//
+// Server must support OpenSubsonic playbackReport extension.
+func (c *Client) ReportPlayback(params ReportPlaybackParameters) error {
+	values := url.Values{}
+	values.Set("mediaId", params.MediaID)
+	values.Set("mediaType", string(params.MediaType))
+	values.Set("positionMs", fmt.Sprintf("%d", params.PositionMs))
+	values.Set("state", string(params.State))
+	if params.PlaybackRate != nil {
+		values.Set("playbackRate", fmt.Sprintf("%g", *params.PlaybackRate))
+	}
+	if params.IgnoreScrobble != nil {
+		if *params.IgnoreScrobble {
+			values.Set("ignoreScrobble", "true")
+		} else {
+			values.Set("ignoreScrobble", "false")
+		}
+	}
+	_, err := c.getValues("reportPlayback", values)
 	return err
 }

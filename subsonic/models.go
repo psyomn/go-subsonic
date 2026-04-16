@@ -681,6 +681,10 @@ type NowPlayingEntry struct {
 	BookmarkPosition      int64     `xml:"bookmarkPosition,attr,omitempty"    json:"bookmarkPosition,omitempty"`
 	OriginalWidth         int       `xml:"originalWidth,attr,omitempty"       json:"originalWidth,omitempty"`
 	OriginalHeight        int       `xml:"originalHeight,attr,omitempty"      json:"originalHeight,omitempty"`
+	// OpenSubsonic playbackReport extension fields
+	State        string  `xml:"state,attr,omitempty"        json:"state,omitempty"`
+	PositionMs   int64   `xml:"positionMs,attr,omitempty"   json:"positionMs,omitempty"`
+	PlaybackRate float64 `xml:"playbackRate,attr,omitempty" json:"playbackRate,omitempty"`
 }
 
 func (t *NowPlayingEntry) MarshalXML(e *xml.Encoder, start xml.StartElement) error {

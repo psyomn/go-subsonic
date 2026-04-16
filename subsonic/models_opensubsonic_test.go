@@ -1,6 +1,7 @@
 package subsonic
 
 import (
+	"bytes"
 	"encoding/xml"
 	"testing"
 )
@@ -75,6 +76,37 @@ func TestLyricsBySongId(t *testing.T) {
 	}
 	if line.Value != "" {
 		t.Errorf("Value (Navidrome incorrect field) should be empty for compliant response")
+	}
+}
+
+const nowPlayingWithPlaybackReportResp = `<subsonic-response xmlns="http://subsonic.org/restapi" status="ok" version="1.16.1" type="AwesomeServerName" serverVersion="0.1.3 (tag)" openSubsonic="true">
+  <nowPlaying>
+    <entry id="123" username="user" minutesAgo="0" playerId="0" isDir="false" title="Take the Home"
+           state="playing" positionMs="120000" playbackRate="1.5"/>
+  </nowPlaying>
+</subsonic-response>`
+
+func TestNowPlayingEntry_PlaybackReportFields(t *testing.T) {
+	resp := bytes.NewReader([]byte(nowPlayingWithPlaybackReportResp))
+	unmarshaled, err := unmarshalResponse(resp)
+	if err != nil {
+		t.Fatalf("Got error %v", err)
+	}
+	if unmarshaled.NowPlaying == nil {
+		t.Fatal("nil NowPlaying")
+	}
+	if l := len(unmarshaled.NowPlaying.Entry); l != 1 {
+		t.Fatalf("wrong number of NowPlaying entries: %d", l)
+	}
+	entry := unmarshaled.NowPlaying.Entry[0]
+	if entry.State != "playing" {
+		t.Errorf("wrong State: want %q, got %q", "playing", entry.State)
+	}
+	if entry.PositionMs != 120000 {
+		t.Errorf("wrong PositionMs: want %d, got %d", 120000, entry.PositionMs)
+	}
+	if entry.PlaybackRate != 1.5 {
+		t.Errorf("wrong PlaybackRate: want %v, got %v", 1.5, entry.PlaybackRate)
 	}
 }
 
